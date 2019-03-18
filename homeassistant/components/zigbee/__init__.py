@@ -47,7 +47,7 @@ CONFIG_SCHEMA = vol.Schema({
 }, extra=vol.ALLOW_EXTRA)
 
 PLATFORM_SCHEMA = vol.Schema({
-    vol.Required(CONF_NAME): cv.string,
+    vol.Optional(CONF_NAME): cv.string,
     vol.Optional(CONF_PIN): cv.positive_int,
     vol.Optional(CONF_ADDRESS): cv.string,
 }, extra=vol.ALLOW_EXTRA)
