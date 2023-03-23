@@ -33,6 +33,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_TEST = 1
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
