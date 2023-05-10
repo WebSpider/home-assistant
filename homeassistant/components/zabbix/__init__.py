@@ -4,6 +4,7 @@ import json
 import logging
 import math
 import queue
+import re
 import threading
 import time
 from urllib.error import HTTPError
@@ -49,6 +50,10 @@ RETRY_MESSAGE = f"%s Retrying in {RETRY_INTERVAL} seconds."
 BATCH_TIMEOUT = 1
 BATCH_BUFFER_SIZE = 100
 
+VERSION_REGEX = re.compile(
+    r"^[v|V](?P<major>[0-9]+)\.(?P<minor>[0-9]+)\.(?P<build>[0-9]+)$"
+)
+
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: INCLUDE_EXCLUDE_BASE_FILTER_SCHEMA.extend(
@@ -79,6 +84,23 @@ def setup(hass: HomeAssistant, config: ConfigType) -> bool:
     publish_states_host = conf.get(CONF_PUBLISH_STATES_HOST)
 
     entities_filter = convert_include_exclude_filter(conf)
+
+    zapi_ver_detect = ZabbixAPI(url=url)
+    zapi_version = VERSION_REGEX.search(zapi_ver_detect.api_info.version())
+    if zapi_version:
+        major_version = int(zapi_version.group(1))
+    else:
+        major_version = 0
+
+    if major_version > 5:
+        # Monkeypatch ZabbixAPI._login() since v6 uses 'username' instead of 'user'
+        _LOGGER.debug("Replacing Zabbix login function with v6 compatible function")
+
+        def v6_login(self, user="", password=""):
+            self.auth = None
+            self.auth = self.user.login(username=user, password=password)
+
+        ZabbixAPI._login = v6_login  # pylint: disable=protected-access
 
     try:
         zapi = ZabbixAPI(url=url, user=username, password=password)
